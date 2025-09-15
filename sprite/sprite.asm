@@ -1,57 +1,70 @@
+;;; 
+;;; msx program for a simple sprite demo to be called from BASIC width
+;;; screen 1
+;;; todo: set screen mode explicitly
+;;; todo: write another version for msxdos
+;;; 
+scaddy:	equ $1800		; address of screen in vram
+spattr:	equ $1b00		; address of sprite attributes in vram
+sppatt:	equ $3800		; address of sprite patterns in vram
+vdpdat:	equ $98			; vdp data read/write port
+vdpsel:	equ $99			; vdp register/address select port
+;;; 
+diamond:	equ $83		; value of diamond character
+maxx:	equ 248			; maximum x coordinate
+maxy:	equ 184			; maximum y coordinate
+numpat:	equ 1			; number of sprite patterns
+spcnt:	equ 9			; number of sprites
+;;; 
 	org 40000
-screen:	equ $1800
-sppatt:	equ $3800
-spattr:	equ $1b00
-count:	equ 9
-	;; screen pattern
-	ld hl,screen
+;;; fill screen with diamonds
+	ld hl,scaddy
 	call vidaddr
-	ld a,$83
+	ld a,diamond
 	ld bc,$0003
 scloop:
-	out ($98),a
+	out (vdpdat),a
 	djnz scloop
 	dec c
 	jp nz,scloop
-	;; sprite data
+;;; set sprite pattern data
 	ld hl,sppatt
 	call vidaddr
 	ld hl,sprites
-	ld bc,$0898
+	ld b,8*numpat
+	ld c,vdpdat
 	otir
 main:	
-	;; sprite attribute
+;;; set sprite attributes to new values
 	ld hl,spattr
 	call vidaddr
 	ld hl,pos
-	ld c,$98
-	ld d,count
+	ld d,spcnt
 upspr:
 	;; y
 	inc hl
 	ld a,(hl)
-	out (c),a
+	out (vdpdat),a
 	inc hl
 	;; x
 	inc hl
 	ld a,(hl)
-	out (c),a
+	out (vdpdat),a
 	inc hl
 	;; pattern number
 	ld a,(hl)
-	out (c),a
+	out (vdpdat),a
 	inc hl
 	;; color
 	ld a,(hl)
-	out (c),a
+	out (vdpdat),a
 	inc hl
 	dec d
 	jr nz,upspr
-	;; ret
-;;; 	jr main
+;;; move sprites
 	ld bc,pos
 	ld hl,vel
-	ld d,count
+	ld d,spcnt
 mvsprt:
 	call add16
 	call add16
@@ -59,30 +72,44 @@ mvsprt:
 	inc bc
 	dec d
 	jr nz,mvsprt
+;;; check if sprites have moved out of bounds. If so invert velocity
 	ld hl,pos
 	ld bc,vel
-	ld d,count
-check:
-	ld e,183
-	call ck
-	ld e,247
-	call ck
+	ld d,spcnt
+cksprt:
+	ld e,maxy
+	call chkbnd
+	ld e,maxx
+	call chkbnd
 	add hl,2
 	dec d
-	jr nz,check
+	jr nz,cksprt
 	halt
 	jr main
 	ret
 vidaddr:
+;;; 
+;;; set address in vram
+;;;
+;;; hl - vram address
+;;; a - modified
+;;; 
 	di
 	ld a,l
-	out ($99),a
+	out (vdpsel),a
 	ld a,h
 	or $40
-	out ($99),a
+	out (vdpsel),a
 	ei
 	ret
 add16:
+;;; 
+;;; add 16-bit numbers (op1<-op1+op2)
+;;;
+;;; bc - pointer to op1, increased by two
+;;; hl - pointer to op2, increased by two
+;;; a - modified
+;;; 
 	ld a,(bc)
 	add a,(hl)
 	ld (bc),a
@@ -94,7 +121,16 @@ add16:
 	inc bc
 	inc hl
 	ret
-ck:
+chkbnd:
+;;;
+;;; check if sprite has moved out of bounds. If it has invert velocity
+;;; component
+;;; 
+;;; bc - pointer to sprite velocity (8.8), increased by two
+;;; e - upper bound
+;;; hl - pointer to sprite position (8.8), increased by two
+;;; a - modified
+;;; 
 	inc hl
 	ld a,(hl)
 	inc hl
@@ -115,8 +151,15 @@ noop:
 	inc bc
 	inc bc
 	ret
+;;; sprite patterns
 sprites:
 	db $3c,$7e,$e7,$c3,$c3,$e7,$7e,$3c
+;;; sprite attributes
+;;; 
+;;; 2 - y in 8.8
+;;; 2 - x in 8.8
+;;; 1 - pattern number
+;;; 1 - color number
 pos:
 	dw $5c00,$7c00,$0100
 	dw $5c00,$7c00,$0200
@@ -127,13 +170,10 @@ pos:
 	dw $5c00,$7c00,$0700
 	dw $5c00,$7c00,$0800
 	dw $5c00,$7c00,$0900
-	dw $5c00,$7c00,$0a00
-	dw $5c00,$7c00,$0b00
-	dw $5c00,$7c00,$0c00
-	dw $5c00,$7c00,$0d00
-	dw $5c00,$7c00,$0e00
-	dw $5c00,$7c00,$0f00
-	dw $5c00,$7c00,$0100
+;;; sprite velocities
+;;; 
+;;; 2 - yv in 8.8
+;;; 3 - xv in 8.8
 vel:
 	dw $0000,$0000
 	dw $0000,$00ff
@@ -144,12 +184,3 @@ vel:
 	dw $00b4,$ff4c
 	dw $ff4c,$ff4c
 	dw $ff4c,$00b4
-	dw $0000,$0000
-	dw $0000,$0000
-	dw $0000,$0000
-	dw $0000,$0000
-	dw $0000,$0000
-	dw $0000,$0000
-	dw $0000,$0000
-	
-	
