@@ -136,17 +136,17 @@ chkbnd:
 	inc hl
 	cp e
 	jr c,noop
-	ld a,(bc)
-	cpl
-	inc a
-	ld (bc),a
-	inc bc
-	ld a,(bc)
-	cpl
-	adc a,0
-	ld (bc),a
-	inc bc
-	ret
+	push hl
+	push de
+	ld hl,bc
+	ld de,(hl)
+	ld hl,0
+	sub hl,de
+	ld de,hl
+	ld hl,bc
+	ld (hl),de
+	pop de
+	pop hl
 noop:
 	inc bc
 	inc bc
@@ -176,11 +176,11 @@ pos:
 ;;; 3 - xv in 8.8
 vel:
 	dw $0000,$0000
-	dw $0000,$00ff
-	dw $00ff,$0000
-	dw $0000,$ff01
-	dw $ff01,$0000
-	dw $00b4,$00b4
-	dw $00b4,$ff4c
-	dw $ff4c,$ff4c
-	dw $ff4c,$00b4
+	dw $0000,$0100
+	dw $0100,$0000
+	dw $0000,$ff00
+	dw $ff00,$0000
+	dw $00b5,$00b5
+	dw $00b5,$ff4b
+	dw $ff4b,$ff4b
+	dw $ff4b,$00b5
