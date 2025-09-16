@@ -9,7 +9,7 @@ sprite.bin: sprite.asm
 .PHONY: clean test distclean
 
 clean:
-	rm -f *~ *.o *.bin
+	rm -f *~ *.o *.bin *#
 
 distclean: clean
 	rm -Rf sprite.msx testdir
