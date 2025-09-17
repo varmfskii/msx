@@ -1,26 +1,25 @@
-all: sprite.msx
-
-sprite.msx: sprite.bin
-	z88dk-appmake +msx -b $< --org 40000 -o=$@
+all: sprite.bin
 
 sprite.bin: sprite.asm
-	z88dk-z80asm -b -o=$@ $<
+	z88dk-z80asm -l -b -o=$@ $<
+
+#sprite.bin: sprite.asm
+#	sjasmplus --raw=$@ --lst $<
 
 .PHONY: clean test distclean
 
 clean:
-	rm -f *~ *.o *.bin *#
+	rm -f *~ *# *.o *.lis *.lst
 
 distclean: clean
-	rm -Rf sprite.msx testdir
+	rm -Rf sprite.bin testdir
 
 testdir:
 	mkdir $@
 
-testdir/sprite.msx: sprite.msx testdir
+testdir/sprite.bin: sprite.bin testdir
 	cp $< $@
 
-test: testdir/sprite.msx
+test: testdir/sprite.bin
 	openmsx -machine msx2 -diska testdir -command 'after time 10 "type_from_file run"'
-
 

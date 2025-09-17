@@ -16,7 +16,11 @@ maxy:	equ 184			; maximum y coordinate
 numpat:	equ 1			; number of sprite patterns
 spcnt:	equ 9			; number of sprites
 ;;; 
-	org 40000
+	org 40960-7
+	db $fe			; type
+	dw begin,end+1,start
+begin:
+start:	
 ;;; fill screen with diamonds
 	ld hl,scaddy
 	call vidaddr
@@ -73,15 +77,16 @@ mvsprt:
 	dec d
 	jr nz,mvsprt
 ;;; check if sprites have moved out of bounds. If so invert velocity
-	ld hl,pos
-	ld bc,vel
+	ld bc,pos
+	ld hl,vel
 	ld d,spcnt
 cksprt:
 	ld e,maxy
 	call chkbnd
 	ld e,maxx
 	call chkbnd
-	add hl,2
+	inc bc
+	inc bc
 	dec d
 	jr nz,cksprt
 	halt
@@ -126,30 +131,31 @@ chkbnd:
 ;;; check if sprite has moved out of bounds. If it has invert velocity
 ;;; component
 ;;; 
-;;; bc - pointer to sprite velocity (8.8), increased by two
+;;; hl - pointer to sprite velocity (8.8), increased by two
 ;;; e - upper bound
-;;; hl - pointer to sprite position (8.8), increased by two
+;;; bc - pointer to sprite position (8.8), increased by two
 ;;; a - modified
 ;;; 
-	inc hl
-	ld a,(hl)
-	inc hl
+	inc bc
+	ld a,(bc)
+	inc bc
 	cp e
 	jr c,noop
-	push hl
-	push de
-	ld hl,bc
-	ld de,(hl)
-	ld hl,0
-	sub hl,de
-	ld de,hl
-	ld hl,bc
-	ld (hl),de
-	pop de
-	pop hl
+	;; change sign of velocity
+	ld a,(hl)
+	neg
+	ld (hl),a
+	inc hl
+	ld a,(hl)
+	cpl
+	inc a
+	sbc a,0
+	ld (hl),a
+	inc hl
+	ret
 noop:
-	inc bc
-	inc bc
+	inc hl
+	inc hl
 	ret
 ;;; sprite patterns
 sprites:
@@ -184,3 +190,4 @@ vel:
 	dw $00b5,$ff4b
 	dw $ff4b,$ff4b
 	dw $ff4b,$00b5
+end:	
